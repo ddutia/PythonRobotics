@@ -3,6 +3,7 @@
 \eta^3 polynomials planner
 
 author: Joe Dinius, Ph.D (https://jwdinius.github.io)
+        Atsushi Sakai (@Atsushi_twi)
 
 Ref:
 
@@ -12,8 +13,11 @@ Ref:
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.integrate import quad
 
 # NOTE: *_pose is a 3-array: 0 - x coord, 1 - y coord, 2 - orientation angle \theta
+
+show_animation = True
 
 
 class eta3_path(object):
@@ -32,16 +36,17 @@ class eta3_path(object):
         for r, s in zip(segments[:-1], segments[1:]):
             assert(np.array_equal(r.end_pose, s.start_pose))
         self.segments = segments
-    """
-    eta3_path::calc_path_point
-
-    input
-        normalized interpolation point along path object, 0 <= u <= len(self.segments)
-    returns
-        2d (x,y) position vector
-    """
 
     def calc_path_point(self, u):
+        """
+        eta3_path::calc_path_point
+
+        input
+            normalized interpolation point along path object, 0 <= u <= len(self.segments)
+        returns
+            2d (x,y) position vector
+        """
+
         assert(u >= 0 and u <= len(self.segments))
         if np.isclose(u, len(self.segments)):
             segment_idx = len(self.segments) - 1
@@ -148,24 +153,103 @@ class eta3_path_segment(object):
             + (10. * eta[1] - 2. * eta[3] + 1. / 6 * eta[5]) * sb \
             - (2. * eta[1]**2 * kappa[2] - 1. / 6 * eta[1]**3 *
                kappa[3] - 1. / 2 * eta[1] * eta[3] * kappa[2]) * cb
-    """
-    eta3_path_segment::calc_point
 
-    input
-        u - parametric representation of a point along the segment, 0 <= u <= 1
-    returns
-        (x,y) of point along the segment
-    """
+        self.s_dot = lambda u: max(np.linalg.norm(self.coeffs[:, 1:].dot(np.array(
+            [1, 2. * u, 3. * u**2, 4. * u**3, 5. * u**4, 6. * u**5, 7. * u**6]))), 1e-6)
+        self.f_length = lambda ue: quad(lambda u: self.s_dot(u), 0, ue)
+        self.segment_length = self.f_length(1)[0]
 
     def calc_point(self, u):
+        """
+        eta3_path_segment::calc_point
+
+        input
+            u - parametric representation of a point along the segment, 0 <= u <= 1
+        returns
+            (x,y) of point along the segment
+        """
         assert(u >= 0 and u <= 1)
         return self.coeffs.dot(np.array([1, u, u**2, u**3, u**4, u**5, u**6, u**7]))
 
+    def calc_deriv(self, u, order=1):
+        """
+        eta3_path_segment::calc_deriv
 
-def main():
-    """
-    recreate path from reference (see Table 1)
-    """
+        input
+            u - parametric representation of a point along the segment, 0 <= u <= 1
+        returns
+            (d^nx/du^n,d^ny/du^n) of point along the segment, for 0 < n <= 2
+        """
+
+        assert(u >= 0 and u <= 1)
+        assert(order > 0 and order <= 2)
+        if order == 1:
+            return self.coeffs[:, 1:].dot(np.array([1, 2. * u, 3. * u**2, 4. * u**3, 5. * u**4, 6. * u**5, 7. * u**6]))
+
+        return self.coeffs[:, 2:].dot(np.array([2, 6. * u, 12. * u**2, 20. * u**3, 30. * u**4, 42. * u**5]))
+
+
+def test1():
+
+    for i in range(10):
+        path_segments = []
+        # segment 1: lane-change curve
+        start_pose = [0, 0, 0]
+        end_pose = [4, 3.0, 0]
+        # NOTE: The ordering on kappa is [kappa_A, kappad_A, kappa_B, kappad_B], with kappad_* being the curvature derivative
+        kappa = [0, 0, 0, 0]
+        eta = [i, i, 0, 0, 0, 0]
+        path_segments.append(eta3_path_segment(
+            start_pose=start_pose, end_pose=end_pose, eta=eta, kappa=kappa))
+
+        path = eta3_path(path_segments)
+
+        # interpolate at several points along the path
+        ui = np.linspace(0, len(path_segments), 1001)
+        pos = np.empty((2, ui.size))
+        for j, u in enumerate(ui):
+            pos[:, j] = path.calc_path_point(u)
+
+        if show_animation:
+            # plot the path
+            plt.plot(pos[0, :], pos[1, :])
+            plt.pause(1.0)
+
+    if show_animation:
+        plt.close("all")
+
+
+def test2():
+
+    for i in range(10):
+        path_segments = []
+        # segment 1: lane-change curve
+        start_pose = [0, 0, 0]
+        end_pose = [4, 3.0, 0]
+        # NOTE: The ordering on kappa is [kappa_A, kappad_A, kappa_B, kappad_B], with kappad_* being the curvature derivative
+        kappa = [0, 0, 0, 0]
+        eta = [0, 0, (i - 5) * 20, (5 - i) * 20, 0, 0]
+        path_segments.append(eta3_path_segment(
+            start_pose=start_pose, end_pose=end_pose, eta=eta, kappa=kappa))
+
+        path = eta3_path(path_segments)
+
+        # interpolate at several points along the path
+        ui = np.linspace(0, len(path_segments), 1001)
+        pos = np.empty((2, ui.size))
+        for j, u in enumerate(ui):
+            pos[:, j] = path.calc_path_point(u)
+
+        if show_animation:
+            # plot the path
+            plt.plot(pos[0, :], pos[1, :])
+            plt.pause(1.0)
+
+    if show_animation:
+        plt.close("all")
+
+
+def test3():
     path_segments = []
 
     # segment 1: lane-change curve
@@ -219,12 +303,25 @@ def main():
         pos[:, i] = path.calc_path_point(u)
 
     # plot the path
-    plt.figure('Path from Reference')
-    plt.plot(pos[0, :], pos[1, :])
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.title('Path')
-    plt.show()
+
+    if show_animation:
+        plt.figure('Path from Reference')
+        plt.plot(pos[0, :], pos[1, :])
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('Path')
+        plt.pause(1.0)
+
+        plt.show()
+
+
+def main():
+    """
+    recreate path from reference (see Table 1)
+    """
+    test1()
+    test2()
+    test3()
 
 
 if __name__ == '__main__':

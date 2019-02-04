@@ -5,16 +5,18 @@ Path Planning Sample Code with RRT for car like robot.
 author: AtsushiSakai(@Atsushi_twi)
 
 """
-
+import matplotlib.pyplot as plt
+import numpy as np
+import copy
+import math
+import random
 import sys
 sys.path.append("../ReedsSheppPath/")
 
-import random
-import math
-import copy
-import numpy as np
-import reeds_shepp_path_planning
-import matplotlib.pyplot as plt
+try:
+    import reeds_shepp_path_planning
+except:
+    raise
 
 show_animation = True
 STEP_SIZE = 0.1
@@ -80,7 +82,7 @@ class RRT():
         return path
 
     def choose_parent(self, newNode, nearinds):
-        if len(nearinds) == 0:
+        if not nearinds:
             return newNode
 
         dlist = []
@@ -106,7 +108,7 @@ class RRT():
         return newNode
 
     def pi_2_pi(self, angle):
-        return (angle + math.pi) % (2*math.pi) - math.pi
+        return (angle + math.pi) % (2 * math.pi) - math.pi
 
     def steer(self, rnd, nind):
 
@@ -148,7 +150,7 @@ class RRT():
     def get_best_last_index(self):
         #  print("get_best_last_index")
 
-        YAWTH = math.radians(3.0)
+        YAWTH = np.deg2rad(3.0)
         XYTH = 0.5
 
         goalinds = []
@@ -166,7 +168,7 @@ class RRT():
         #  print("OK YAW TH num is")
         #  print(len(fgoalinds))
 
-        if len(fgoalinds) == 0:
+        if not fgoalinds:
             return None
 
         mincost = min([self.nodeList[i].cost for i in fgoalinds])
@@ -194,9 +196,9 @@ class RRT():
         nnode = len(self.nodeList)
         r = 50.0 * math.sqrt((math.log(nnode) / nnode))
         #  r = self.expandDis * 5.0
-        dlist = [(node.x - newNode.x) ** 2 +
-                 (node.y - newNode.y) ** 2 +
-                 (node.yaw - newNode.yaw) ** 2
+        dlist = [(node.x - newNode.x) ** 2
+                 + (node.y - newNode.y) ** 2
+                 + (node.yaw - newNode.yaw) ** 2
                  for node in self.nodeList]
         nearinds = [dlist.index(i) for i in dlist if i <= r ** 2]
         return nearinds
@@ -247,9 +249,9 @@ class RRT():
         #  input()
 
     def GetNearestListIndex(self, nodeList, rnd):
-        dlist = [(node.x - rnd.x) ** 2 +
-                 (node.y - rnd.y) ** 2 +
-                 (node.yaw - rnd.yaw) ** 2 for node in nodeList]
+        dlist = [(node.x - rnd.x) ** 2
+                 + (node.y - rnd.y) ** 2
+                 + (node.yaw - rnd.yaw) ** 2 for node in nodeList]
         minind = dlist.index(min(dlist))
 
         return minind
@@ -308,8 +310,8 @@ def main():
     ]  # [x,y,size(radius)]
 
     # Set Initial parameters
-    start = [0.0, 0.0, math.radians(0.0)]
-    goal = [6.0, 7.0, math.radians(90.0)]
+    start = [0.0, 0.0, np.deg2rad(0.0)]
+    goal = [6.0, 7.0, np.deg2rad(90.0)]
 
     rrt = RRT(start, goal, randArea=[-2.0, 15.0], obstacleList=obstacleList)
     path = rrt.Planning(animation=show_animation)

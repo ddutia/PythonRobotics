@@ -5,9 +5,6 @@ author: AtsushiSakai(@Atsushi_twi)
 
 """
 
-import sys
-sys.path.append("../ReedsSheppPath/")
-
 import random
 import math
 import copy
@@ -15,8 +12,14 @@ import numpy as np
 import pure_pursuit
 import matplotlib.pyplot as plt
 
-import reeds_shepp_path_planning
-import unicycle_model
+import sys
+sys.path.append("../ReedsSheppPath/")
+
+try:
+    import reeds_shepp_path_planning
+    import unicycle_model
+except:
+    raise
 
 show_animation = True
 
@@ -130,11 +133,11 @@ class RRT():
             fy.append(self.end.y)
             fyaw.append(self.end.yaw)
             return True, fx, fy, fyaw, fv, ft, fa, fd
-        else:
-            return False, None, None, None, None, None, None, None
+
+        return False, None, None, None, None, None, None, None
 
     def calc_tracking_path(self, path):
-        path = np.matrix(path[::-1])
+        path = np.array(path[::-1])
         ds = 0.2
         for i in range(10):
             lx = path[-1, 0]
@@ -145,7 +148,7 @@ class RRT():
                 print("back")
                 ds *= -1
 
-            lstate = np.matrix(
+            lstate = np.array(
                 [lx + ds * math.cos(lyaw), ly + ds * math.sin(lyaw), lyaw])
             #  print(lstate)
 
@@ -194,7 +197,7 @@ class RRT():
         return find_goal, x, y, yaw, v, t, a, d
 
     def choose_parent(self, newNode, nearinds):
-        if len(nearinds) == 0:
+        if not nearinds:
             return newNode
 
         dlist = []
@@ -221,10 +224,8 @@ class RRT():
 
         return newNode
 
-
     def pi_2_pi(self, angle):
-        return (angle + math.pi) % (2*math.pi) - math.pi
-
+        return (angle + math.pi) % (2 * math.pi) - math.pi
 
     def steer(self, rnd, nind):
         #  print(rnd)
@@ -265,7 +266,7 @@ class RRT():
     def get_best_last_indexs(self):
         #  print("get_best_last_index")
 
-        YAWTH = math.radians(1.0)
+        YAWTH = np.deg2rad(1.0)
         XYTH = 0.5
 
         goalinds = []
@@ -298,7 +299,7 @@ class RRT():
             goalind = node.parent
         path.append([self.start.x, self.start.y, self.start.yaw])
 
-        path = np.matrix(path[::-1])
+        path = np.array(path[::-1])
         return path
 
     def calc_dist_to_goal(self, x, y):
@@ -420,8 +421,8 @@ def main():
     ]  # [x,y,size(radius)]
 
     # Set Initial parameters
-    start = [0.0, 0.0, math.radians(0.0)]
-    goal = [6.0, 7.0, math.radians(90.0)]
+    start = [0.0, 0.0, np.deg2rad(0.0)]
+    goal = [6.0, 7.0, np.deg2rad(90.0)]
 
     rrt = RRT(start, goal, randArea=[-2.0, 20.0], obstacleList=obstacleList)
     flag, x, y, yaw, v, t, a, d = rrt.Planning(animation=show_animation)
@@ -429,7 +430,6 @@ def main():
     if not flag:
         print("cannot find feasible path")
 
-    #  flg, ax = plt.subplots(1)
     # Draw final path
     if show_animation:
         rrt.DrawGraph()
@@ -437,27 +437,27 @@ def main():
         plt.grid(True)
         plt.pause(0.001)
 
-        flg, ax = plt.subplots(1)
-        plt.plot(t, [math.degrees(iyaw) for iyaw in yaw[:-1]], '-r')
+        plt.subplots(1)
+        plt.plot(t, [np.rad2deg(iyaw) for iyaw in yaw[:-1]], '-r')
         plt.xlabel("time[s]")
         plt.ylabel("Yaw[deg]")
         plt.grid(True)
 
-        flg, ax = plt.subplots(1)
+        plt.subplots(1)
         plt.plot(t, [iv * 3.6 for iv in v], '-r')
 
         plt.xlabel("time[s]")
         plt.ylabel("velocity[km/h]")
         plt.grid(True)
 
-        flg, ax = plt.subplots(1)
+        plt.subplots(1)
         plt.plot(t, a, '-r')
         plt.xlabel("time[s]")
         plt.ylabel("accel[m/ss]")
         plt.grid(True)
 
-        flg, ax = plt.subplots(1)
-        plt.plot(t, [math.degrees(td) for td in d], '-r')
+        plt.subplots(1)
+        plt.plot(t, [np.rad2deg(td) for td in d], '-r')
         plt.xlabel("time[s]")
         plt.ylabel("Steering angle[deg]")
         plt.grid(True)

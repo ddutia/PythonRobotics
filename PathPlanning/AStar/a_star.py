@@ -68,7 +68,7 @@ def a_star_planning(sx, sy, gx, gy, ox, oy, reso, rr):
         current = openset[c_id]
 
         # show graph
-        if show_animation:
+        if show_animation:  # pragma: no cover
             plt.plot(current.x * reso, current.y * reso, "xc")
             if len(closedset.keys()) % 10 == 0:
                 plt.pause(0.001)
@@ -85,7 +85,7 @@ def a_star_planning(sx, sy, gx, gy, ox, oy, reso, rr):
         closedset[c_id] = current
 
         # expand search grid based on motion model
-        for i in range(len(motion)):
+        for i, _ in enumerate(motion):
             node = Node(current.x + motion[i][0],
                         current.y + motion[i][1],
                         current.cost + motion[i][2], c_id)
@@ -99,14 +99,10 @@ def a_star_planning(sx, sy, gx, gy, ox, oy, reso, rr):
 
             if n_id not in openset:
                 openset[n_id] = node  # Discover a new node
-
-            tcost = current.cost + calc_heuristic(current, node)
-
-            if tcost >= node.cost:
-                continue  # this is not a better path
-
-            node.cost = tcost
-            openset[n_id] = node  # This path is the best unitl now. record it!
+            else:
+                if openset[n_id].cost >= node.cost:
+                    # This path is the best until now. record it!
+                    openset[n_id] = node
 
     rx, ry = calc_fianl_path(ngoal, closedset, reso)
 
@@ -218,7 +214,7 @@ def main():
         ox.append(40.0)
         oy.append(60.0 - i)
 
-    if show_animation:
+    if show_animation:  # pragma: no cover
         plt.plot(ox, oy, ".k")
         plt.plot(sx, sy, "xr")
         plt.plot(gx, gy, "xb")
@@ -227,7 +223,7 @@ def main():
 
     rx, ry = a_star_planning(sx, sy, gx, gy, ox, oy, grid_size, robot_size)
 
-    if show_animation:
+    if show_animation:  # pragma: no cover
         plt.plot(rx, ry, "-r")
         plt.show()
 
